@@ -11,7 +11,7 @@ pipeline {
         ANS_KEYPAIR="${params.ENVIRONMENT}"
         AWS_ACCOUNT_ID=sh(script:'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout:true).trim()
         ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        APP_REPO_NAME = "ecr-repo/brc-app"
+        APP_REPO_NAME = "brc-repo"
         INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
     }
     stages {
