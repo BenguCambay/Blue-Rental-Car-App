@@ -11,7 +11,7 @@ pipeline {
         AWS_REGION= "us-east-1"
         INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
         APP_NAME="car-rental"
-        APP_REPO_NAME="techpro-brc"
+        APP_REPO_NAME="task-4-ecr-repo"
         AWS_ACCOUNT_ID=sh(script: 'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
         ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
@@ -30,7 +30,7 @@ pipeline {
         stage('Create AWS Resources') {
             steps {
                 sh """
-                    cd Task-3-Solution/terraform
+                    cd Task-4/terraform
                     terraform workspace select ${params.ENVIRONMENT} || terraform workspace new ${params.ENVIRONMENT}
                     terraform init
                     terraform apply -var='ec2_type=${params.INSTANCE_TYPE}' \
@@ -40,49 +40,7 @@ pipeline {
                 """
             }
         }
-        stage('Prepare Tags for Docker Images') {
-            steps {
-                echo 'Preparing Tags for Docker Images'
-                script {
-                    env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:frontend"
-                    env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:backend"
-                    env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:postgre"
-                }
-            }
-        }
-              
-        stage('CREATE ENV NODE_IP') {
-            steps {
-                echo 'CREATE ENV'
-                dir('Task-3-Solution/terraform'){
-                script {
-                    env.NODE_IP = sh(script: 'terraform output -raw public_ip', returnStdout:true).trim()
-                }
-                }
-                sh "echo ${NODE_IP}"
-            }
-        }
 
-        stage('ENVSUBST UPDATE DOCKER COMPOSE') {
-            steps {
-                echo 'env update'
-                sh """
-                cd Task-3-Solution/docker
-                envsubst < docker-compose-template.yml > docker-compose.yml
-                """
-            }
-        }
-        stage('Build App Docker Images') {
-            steps {
-                echo 'Building App Dev Images'
-                sh """
-                    docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/Task-3-Solution/bluerentalcars-frontend"
-                    docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/Task-3-Solution/bluerentalcars-backend"
-                    docker build --force-rm -t "${IMAGE_TAG_DB}" "${WORKSPACE}/Task-3-Solution/postgresql"
-                    docker image ls
-                """
-            }
-        }
         stage('Create ECR Repository') {
             steps {
                 echo "Creating ECR Repository ${APP_REPO_NAME}"
@@ -92,6 +50,42 @@ pipeline {
                 """
             }
         }
+
+
+        stage('Build App Docker Images') {
+            steps {
+                echo 'Building App Dev Images'
+                sh """
+                    docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/Task-4/bluerentalcars-frontend"
+                    docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/Task-4/bluerentalcars-backend"
+                    docker build --force-rm -t "${IMAGE_TAG_DB}" "${WORKSPACE}/Task-4/postgresql"
+                    docker image ls
+                """
+            }
+
+        stage('Prepare Tags for Docker Images') {
+            steps {
+                echo 'Preparing Tags for Docker Images'
+                script {
+                    def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "frontend")
+                    def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "backend")
+                    def postgreTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "postgre")
+
+                    env.BACKEND_TAG = "${backendTag}"
+                    env.FRONTEND_TAG = "${frontendTag}"
+                    env.DB_TAG = "${postgreTag}"
+
+                    env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${frontendTag}"
+                    env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${backendTag}"
+                    env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:${postgreTag}"
+                }
+
+                sh "echo ${BACKEND_TAG}"
+                sh "echo ${FRONTEND_TAG}"
+                sh "echo ${DB_TAG}"
+            }
+        }
+
         stage('Push Images to ECR Repo') {
             steps {
                 echo "Pushing ${APP_NAME} App Images to ECR Repo"
@@ -103,6 +97,34 @@ pipeline {
                 """
             }
         }
+
+              
+        stage('CREATE ENV NODE_IP') {
+            steps {
+                echo 'CREATE ENV'
+                dir('Task-4/terraform'){
+                script {
+                    env.NODE_IP = sh(script: 'terraform output -raw public_ip', returnStdout:true).trim()
+                }
+                }
+                sh "echo ${NODE_IP}"
+            }
+        }
+
+        stage('ENVSUBST UPDATE') {
+            steps {
+                echo 'env update'
+                sh """
+                cd Task-4/kubernetes-yml
+                envsubst < ui-deployment-template.yaml > ui-deployment.yaml
+                envsubst < kustomization-template.yaml > kustomization.yaml
+                """
+            }
+        }
+
+        }
+
+
         stage('wait the instance') {
             steps {
                 script {
@@ -118,13 +140,26 @@ pipeline {
                 echo 'Configure AWS Instance'
                 sh 'ls -l'
                 sh 'ansible --version'
-                sh 'ansible-inventory -i ./Task-3-Solution/ansible/inventory_aws_ec2.yml --graph'
+                sh 'ansible-inventory -i ./Task-4/ansible/inventory_aws_ec2.yml --graph'
                 sh """
-                    cd Task-3-Solution/ansible
-                    ansible-playbook -i inventory_aws_ec2.yml --private-key="${WORKSPACE}/${ENVIRONMENT}" -e "compose_dir=${WORKSPACE}/Task-3-Solution/docker" ${ENVIRONMENT}.yml -vv
+                    cd Task-4/ansible
+                    ansible-playbook -i inventory_aws_ec2.yml --private-key="${WORKSPACE}/${ENVIRONMENT}" -e "compose_dir=${WORKSPACE}/Task-4/docker" ${ENVIRONMENT}.yml -vv
                 """
              }
         }
+
+        stage('Apply Kubernetes Changes with Kustomize') {
+            steps {
+                echo 'Applying Kubernetes changes using Kustomize'
+                script {
+                    sh """
+                        cd Task-4/kubernetes-yml
+                        export KUBECONFIG=${KUBECONFIG}  # Kubeconfig ortam değişkenini ayarla
+                        kubectl apply -k . -f app-service.yaml -f db-service.yaml -f ui-service.yaml
+
+                    """
+                }
+        
          
     }
 
@@ -144,7 +179,7 @@ pipeline {
                 """
             echo 'Delete AWS Resources'            
                 sh """
-                cd Task-3-Solution/terraform
+                cd Task-4/terraform
                 terraform destroy --auto-approve
                 """
              echo 'Delete the Image Repository on ECR due to the success'
@@ -162,7 +197,7 @@ pipeline {
                 """
             echo 'Delete AWS Resources'            
                 sh """
-                cd Task-3-Solution/terraform
+                cd Task-4/terraform
                 terraform destroy --auto-approve
                 """
              echo 'Delete the Image Repository on ECR due to the Failure'
@@ -170,4 +205,18 @@ pipeline {
         }
     }
 
+}
+
+
+// getNextVersion fonksiyonunu tanımlıyoruz
+def getNextVersion(repoUrl, baseTag) {
+    def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query 'imageDetails[*].imageTags[?starts_with(@, \`${baseTag}-v\`)]' --output text", returnStdout: true).trim()
+    
+    if (versions) {
+        def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
+        def nextVersion = versionNumbers.max() + 1
+        return "${baseTag}-v${nextVersion}"
+    } else {
+        return "${baseTag}-v1"
+    }
 }

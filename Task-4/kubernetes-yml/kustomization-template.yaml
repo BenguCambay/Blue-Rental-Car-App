@@ -1,0 +1,17 @@
+resources:
+  - app-deployment.yml
+  - ui-deployment.yml
+  - db-deployment.yml
+
+images:
+  - name: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newName: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newTag: ${BACKEND_TAG}
+
+  - name: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newName: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newTag: ${FRONTEND_TAG}
+
+  - name: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newName: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/task-4-ecr-repo
+    newTag: ${DB_TAG}

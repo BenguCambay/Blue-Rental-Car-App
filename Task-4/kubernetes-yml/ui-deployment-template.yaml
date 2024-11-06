@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose.yml
+    kompose.image-pull-secret: ecr-secret
+    kompose.service.type: NodePort
+    kompose.version: 1.29.0 (997957870)
+  labels:
+    io.kompose.service: ui
+  name: ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: ui
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose.yml
+        kompose.image-pull-secret: ecr-secret
+        kompose.service.type: NodePort
+        kompose.version: 1.29.0 (997957870)
+      labels:
+        io.kompose.network/task-4-carrental-net: "true"
+        io.kompose.service: ui
+    spec:
+      containers:
+        - env:
+            - name: REACT_APP_API_URL
+              value: http://${NODE_IP}:8080/car-rental/api/
+          image: 058264318400.dkr.ecr.us-east-1.amazonaws.com/task-4-ecr-repo:frontend
+          name: brc-frontend
+          ports:
+            - containerPort: 3000
+              hostPort: 3000
+              protocol: TCP
+      imagePullSecrets:
+        - name: ecr-secret
+      restartPolicy: Always
