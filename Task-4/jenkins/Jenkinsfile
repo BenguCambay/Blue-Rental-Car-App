@@ -8,12 +8,12 @@ pipeline {
     }
 
     environment {
-        AWS_REGION= "us-east-1"
+        AWS_REGION = "us-east-1"
         INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
-        APP_NAME="car-rental"
-        APP_REPO_NAME="task-4-ecr-repo"
-        AWS_ACCOUNT_ID=sh(script: 'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
-        ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        APP_NAME = "car-rental"
+        APP_REPO_NAME = "task-4-ecr-repo"
+        AWS_ACCOUNT_ID = sh(script: 'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
 
     stages {    
@@ -51,7 +51,6 @@ pipeline {
             }
         }
 
-
         stage('Build App Docker Images') {
             steps {
                 echo 'Building App Dev Images'
@@ -62,6 +61,7 @@ pipeline {
                     docker image ls
                 """
             }
+        }
 
         stage('Prepare Tags for Docker Images') {
             steps {
@@ -98,14 +98,13 @@ pipeline {
             }
         }
 
-              
         stage('CREATE ENV NODE_IP') {
             steps {
                 echo 'CREATE ENV'
-                dir('Task-4/terraform'){
-                script {
-                    env.NODE_IP = sh(script: 'terraform output -raw public_ip', returnStdout:true).trim()
-                }
+                dir('Task-4/terraform') {
+                    script {
+                        env.NODE_IP = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
+                    }
                 }
                 sh "echo ${NODE_IP}"
             }
@@ -115,21 +114,18 @@ pipeline {
             steps {
                 echo 'env update'
                 sh """
-                cd Task-4/kubernetes-yml
-                envsubst < ui-deployment-template.yaml > ui-deployment.yaml
-                envsubst < kustomization-template.yaml > kustomization.yaml
+                    cd Task-4/kubernetes-yml
+                    envsubst < ui-deployment-template.yaml > ui-deployment.yaml
+                    envsubst < kustomization-template.yaml > kustomization.yaml
                 """
             }
         }
 
-        }
-
-
-        stage('wait the instance') {
+        stage('Wait for the instance') {
             steps {
                 script {
                     echo 'Waiting for the instance'
-                    id = sh(script: 'aws ec2 describe-instances --filters Name=tag-value,Values="${ENVIRONMENT}_server" Name=instance-state-name,Values=running --query Reservations[*].Instances[*].[InstanceId] --output text',  returnStdout:true).trim()
+                    id = sh(script: 'aws ec2 describe-instances --filters Name=tag-value,Values="${ENVIRONMENT}_server" Name=instance-state-name,Values=running --query Reservations[*].Instances[*].[InstanceId] --output text', returnStdout: true).trim()
                     sh 'aws ec2 wait instance-status-ok --instance-ids $id'
                 }
             }
@@ -145,7 +141,7 @@ pipeline {
                     cd Task-4/ansible
                     ansible-playbook -i inventory_aws_ec2.yml --private-key="${WORKSPACE}/${ENVIRONMENT}" -e "compose_dir=${WORKSPACE}/Task-4/docker" ${ENVIRONMENT}.yml -vv
                 """
-             }
+            }
         }
 
         stage('Apply Kubernetes Changes with Kustomize') {
@@ -156,11 +152,10 @@ pipeline {
                         cd Task-4/kubernetes-yml
                         export KUBECONFIG=${KUBECONFIG}  # Kubeconfig ortam değişkenini ayarla
                         kubectl apply -k . -f app-service.yaml -f db-service.yaml -f ui-service.yaml
-
                     """
                 }
-        
-         
+            }
+        }
     }
 
     post {
@@ -168,51 +163,48 @@ pipeline {
             echo 'Deleting all local images'
             sh 'docker image prune -af'
         }
-          success {
+        success {
             echo 'Delete the Key Pair'
-                timeout(time:5, unit:'DAYS'){
-                input message:'Approve terminate'
-                }
-           sh """
+            timeout(time: 5, unit: 'DAYS') {
+                input message: 'Approve terminate'
+            }
+            sh """
                 aws ec2 delete-key-pair --region ${AWS_REGION} --key-name ${ENVIRONMENT}
                 rm -rf ${ENVIRONMENT}
-                """
+            """
             echo 'Delete AWS Resources'            
-                sh """
+            sh """
                 cd Task-4/terraform
                 terraform destroy --auto-approve
-                """
-             echo 'Delete the Image Repository on ECR due to the success'
-                sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
+            """
+            echo 'Delete the Image Repository on ECR due to the success'
+            sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
         }
         failure {
             echo 'Delete the Key Pair'
-                timeout(time:5, unit:'DAYS'){
-                input message:'Approve terminate'
-                }
+            timeout(time: 5, unit: 'DAYS') {
+                input message: 'Approve terminate'
+            }
             echo 'Delete the Key Pair'
             sh """
                 aws ec2 delete-key-pair --region ${AWS_REGION} --key-name ${ENVIRONMENT}
                 rm -rf ${ENVIRONMENT}
-                """
+            """
             echo 'Delete AWS Resources'            
-                sh """
+            sh """
                 cd Task-4/terraform
                 terraform destroy --auto-approve
-                """
-             echo 'Delete the Image Repository on ECR due to the Failure'
-                sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
+            """
+            echo 'Delete the Image Repository on ECR due to the Failure'
+            sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
         }
     }
-
 }
-
 
 // getNextVersion fonksiyonunu tanımlıyoruz
 def getNextVersion(repoUrl, baseTag) {
     def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query \"imageDetails[*].imageTags[?starts_with(@, '${baseTag}-v')\"]\" --output text", returnStdout: true).trim()
 
-    
     if (versions) {
         def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
         def nextVersion = versionNumbers.max() + 1
