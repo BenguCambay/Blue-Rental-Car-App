@@ -210,7 +210,8 @@ pipeline {
 
 // getNextVersion fonksiyonunu tanımlıyoruz
 def getNextVersion(repoUrl, baseTag) {
-    def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query 'imageDetails[*].imageTags[?starts_with(@, \`${baseTag}-v\`)]' --output text", returnStdout: true).trim()
+    def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query \"imageDetails[*].imageTags[?starts_with(@, '${baseTag}-v')\"]\" --output text", returnStdout: true).trim()
+
     
     if (versions) {
         def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
