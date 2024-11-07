@@ -51,7 +51,7 @@ pipeline {
                 sh """
                     aws ecr describe-repositories --repository-names "${APP_REPO_NAME}" --region ${AWS_REGION} || \
                     aws ecr create-repository --repository-name "${APP_REPO_NAME}" --region ${AWS_REGION}
-                  """
+                """
             }
         }
 
@@ -68,9 +68,6 @@ pipeline {
             }
         }
 
-
-
-
         stage('Build App Docker Images') {
             steps {
                 echo 'Building App Images'
@@ -82,7 +79,6 @@ pipeline {
                 """
             }
         }
-
 
         stage('Push Images to ECR Repo') {
             steps {
@@ -96,9 +92,9 @@ pipeline {
             }
         }
 
-        stage('CREATE ENV NODE_IP') {
+        stage('Create ENV NODE_IP') {
             steps {
-                echo 'CREATE ENV'
+                echo 'Creating ENV'
                 dir('Task-4/terraform') {
                     script {
                         env.NODE_IP = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
@@ -110,7 +106,7 @@ pipeline {
 
         stage('ENVSUBST UPDATE') {
             steps {
-                echo 'env update'
+                echo 'Updating environment configurations'
                 sh """
                     cd Task-4/kubernetes-yml
                     envsubst < ui-deployment-template.yaml > ui-deployment.yaml
@@ -131,7 +127,7 @@ pipeline {
 
         stage('Configure AWS Instance and Deploy Application') {
             steps {
-                echo 'Configure AWS Instance'
+                echo 'Configuring AWS Instance'
                 sh 'ls -l'
                 sh 'ansible --version'
                 sh 'ansible-inventory -i ./Task-4/ansible/inventory_aws_ec2.yml --graph'
@@ -144,25 +140,22 @@ pipeline {
 
         stage('Apply Kubernetes Configurations') {
             steps {
-                env.sshKeyFile=
                 script {
-                    env.sshKeyFile = "${ENVIRONMENT}"
-                    echo "SSH Key File Path: ${WORKSPACES}"
-                    
-                        sh '''
-                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${NODE_IP} '
-                           sleep 10
-                           git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
-                           sleep 10
-                           export KUBECONFIG=${KUBECONFIG}
-                           kubectl apply -f /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml/
-                           '
-                        "
-                        '''
-                    
+                    env.sshKeyFile = "${WORKSPACE}/${ENVIRONMENT}"
+                    echo "SSH Key File Path: ${sshKeyFile}"
+                    sh """
+                       ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${NODE_IP} '
+                       sleep 10
+                       git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
+                       sleep 10
+                       export KUBECONFIG=${KUBECONFIG}
+                       kubectl apply -f /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml/
+                       '
+                    """
                 }
             }
         }
+    }
 
     post {
         always {
@@ -170,44 +163,38 @@ pipeline {
             sh 'docker image prune -af'
         }
         success {
-            echo 'Delete the Key Pair'
+            echo 'Deleting Key Pair'
             timeout(time: 5, unit: 'DAYS') {
-                input message: 'Approve terminate'
+                input message: 'Approve termination'
             }
             sh """
                 aws ec2 delete-key-pair --region ${AWS_REGION} --key-name ${ENVIRONMENT}
                 rm -rf ${ENVIRONMENT}
             """
-            echo 'Delete AWS Resources'            
+            echo 'Deleting AWS Resources'            
             sh """
                 cd Task-4/terraform
                 terraform destroy --auto-approve
             """
-            echo 'Delete the Image Repository on ECR due to the success'
+            echo 'Deleting the Image Repository on ECR after success'
             sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
         }
         failure {
-            echo 'Delete the Key Pair'
+            echo 'Deleting Key Pair'
             timeout(time: 5, unit: 'DAYS') {
-                input message: 'Approve terminate'
+                input message: 'Approve termination'
             }
-            echo 'Delete the Key Pair'
             sh """
                 aws ec2 delete-key-pair --region ${AWS_REGION} --key-name ${ENVIRONMENT}
                 rm -rf ${ENVIRONMENT}
             """
-            echo 'Delete AWS Resources'            
+            echo 'Deleting AWS Resources'            
             sh """
                 cd Task-4/terraform
                 terraform destroy --auto-approve
             """
-            echo 'Delete the Image Repository on ECR due to the Failure'
+            echo 'Deleting the Image Repository on ECR after failure'
             sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
         }
     }
 }
-
-
-
-
-
