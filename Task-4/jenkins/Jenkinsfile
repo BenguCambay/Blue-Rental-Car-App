@@ -160,7 +160,6 @@ pipeline {
                 script {
                     sh """
                         cd Task-4/kubernetes-yml
-                        export KUBECONFIG=${KUBECONFIG}  # Kubeconfig ortam değişkenini ayarla
                         kubectl apply -k . -f app-service.yaml -f db-service.yaml -f ui-service.yaml
                     """
                 }
