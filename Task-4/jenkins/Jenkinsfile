@@ -1,3 +1,16 @@
+def getNextVersion(repoUrl, baseTag) {
+    def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query \"imageDetails[*].imageTags[?starts_with(@, '${baseTag}-v')\"]\" --output text", returnStdout: true).trim()
+
+    if (versions) {
+        def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
+        def nextVersion = versionNumbers.max() + 1
+        return "${baseTag}-v${nextVersion}"
+    } else {
+        return "${baseTag}-v1"
+    }
+}
+
+
 pipeline {
     agent any
 
@@ -58,36 +71,19 @@ pipeline {
                 echo 'Preparing Tags for Docker Images'
                 sh 'pwd'
                 script {
-                    // getNextVersion fonksiyonunu tanımlıyoruz
-                    def getNextVersion(repoUrl, baseTag) {
-                        def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query \"imageDetails[*].imageTags[?starts_with(@, '${baseTag}-v')\"]\" --output text", returnStdout: true).trim()
-
-                        if (versions) {
-                            def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
-                            def nextVersion = versionNumbers.max() + 1
-                            return "${baseTag}-v${nextVersion}"
-                        } else {
-                            return "${baseTag}-v1"
-                        }
-                    }
-
-                    // getNextVersion fonksiyonunu çağırıyoruz
                     def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "frontend")
                     def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "backend")
                     def postgreTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "postgre")
 
-                    // Çevre değişkenlerini ayarlıyoruz
                     env.BACKEND_TAG = "${backendTag}"
                     env.FRONTEND_TAG = "${frontendTag}"
                     env.DB_TAG = "${postgreTag}"
 
-                    // Docker image tag'lerini belirliyoruz
                     env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${frontendTag}"
                     env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${backendTag}"
                     env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:${postgreTag}"
                 }
                 sh 'pwd'
-                // Çevre değişkenlerini echo ile yazdırıyoruz
                 sh "echo ${env.BACKEND_TAG}"
                 sh "echo ${env.FRONTEND_TAG}"
                 sh "echo ${env.DB_TAG}"
