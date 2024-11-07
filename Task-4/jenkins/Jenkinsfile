@@ -47,7 +47,7 @@ pipeline {
                 sh """
                     aws ecr describe-repositories --repository-names "${APP_REPO_NAME}" --region ${AWS_REGION} || \
                     aws ecr create-repository --repository-name "${APP_REPO_NAME}" --region ${AWS_REGION}
-                """
+                  """
             }
         }
 
@@ -56,6 +56,7 @@ pipeline {
         stage('Prepare Tags for Docker Images') {
             steps {
                 echo 'Preparing Tags for Docker Images'
+                sh 'pwd'
                 script {
                     def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "frontend")
                     def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "backend")
@@ -69,7 +70,7 @@ pipeline {
                     env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${backendTag}"
                     env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:${postgreTag}"
                 }
-
+                sh 'pwd'
                 sh "echo ${BACKEND_TAG}"
                 sh "echo ${FRONTEND_TAG}"
                 sh "echo ${DB_TAG}"
