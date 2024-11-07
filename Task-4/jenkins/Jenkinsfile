@@ -144,12 +144,17 @@ pipeline {
                     env.sshKeyFile = "${WORKSPACE}/${ENVIRONMENT}"
                     echo "SSH Key File Path: ${sshKeyFile}"
                     sh """
+                       scp -i ${sshKeyFile} -o StrictHostKeyChecking=no ${WORKSPACE}/Task-4/kubernetes-yml/* ubuntu@${NODE_IP}:/home/ubuntu/kubernetes-yml/
+                       """
+
+
+                    sh """
                        ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${NODE_IP} '
                        sleep 10
-                       git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
-                       sleep 10
+                       rm -rf /home/ubuntu/kubernetes-yml/kustomization-template.yml
+                       rm -rf /home/ubuntu/kubernetes-yml/ui-deployment-template.yml
                        export KUBECONFIG=${KUBECONFIG}
-                       kubectl apply -f /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml/
+                       kubectl apply -k /home/ubuntu/kubernetes-yml/
                        '
                     """
                 }
