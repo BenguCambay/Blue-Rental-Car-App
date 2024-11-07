@@ -1,5 +1,5 @@
 ---
-- name: Setup single-node K3s cluster, install Kompose, Docker, and perform system update
+- name: Setup single-node K3s cluster, install Kompose, Docker, AWS CLI, and perform system update
   hosts: _prod_server
   become: true
   remote_user: ubuntu
@@ -25,6 +25,7 @@
         - ca-certificates
         - gnupg
         - lsb-release
+        - unzip  # AWS CLI kurulumu için gerekli
 
     - name: Add Docker GPG key
       apt_key:
@@ -54,6 +55,17 @@
         name: "{{ ansible_user_id }}"
         groups: docker
         append: true
+
+    - name: Install AWS CLI
+      shell: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Verify AWS CLI installation
+      command: aws --version
 
     - name: Install K3s
       shell: |
@@ -95,7 +107,6 @@
     - name: Verify kubectl, Kompose, and Docker installation
       command: kubectl get nodes
       register: kubectl_output
-
 
     - name: Get AWS ECR login password
       command: "aws ecr get-login-password --region {{ region }}"
