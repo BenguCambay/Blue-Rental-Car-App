@@ -58,9 +58,9 @@ pipeline {
                 echo 'Preparing Tags for Docker Images'
                 sh 'pwd'
                 script {
-                    def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "frontend")
-                    def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "backend")
-                    def postgreTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "postgre")
+                    def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}, frontend")
+                    def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}, backend")
+                    def postgreTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}, postgre")
 
                     env.BACKEND_TAG = "${backendTag}"
                     env.FRONTEND_TAG = "${frontendTag}"
