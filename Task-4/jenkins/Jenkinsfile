@@ -150,11 +150,13 @@ pipeline {
                     echo "SSH Key File Path: ${WORKSPACES}"
                     
                         sh '''
-                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${nodeIp} 'your-command'
+                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${nodeIp} '
+                           sleep 10
                            git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
                            sleep 10
                            export KUBECONFIG=${KUBECONFIG}
                            kubectl apply -f /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml/
+                           '
                         "
                         '''
                     
