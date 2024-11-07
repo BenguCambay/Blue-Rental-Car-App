@@ -21,6 +21,7 @@ pipeline {
     }
 
     environment {
+        KUBECONFIG = "/path/to/your/kubeconfig"
         FRONTEND_TAG = "frontend-v${BUILD_NUMBER}"
         BACKEND_TAG = "backend-v${BUILD_NUMBER}"
         DB_TAG = "postgre-v${BUILD_NUMBER}"
@@ -160,6 +161,7 @@ pipeline {
                 script {
                     sh """
                         cd Task-4/kubernetes-yml
+                        export KUBECONFIG=${KUBECONFIG}  # Kubeconfig ortam değişkenini ayarla
                         kubectl apply -k . -f app-service.yaml -f db-service.yaml -f ui-service.yaml
                     """
                 }
