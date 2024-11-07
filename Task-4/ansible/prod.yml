@@ -134,5 +134,16 @@
       debug:
         msg: "{{ kubectl_output.stdout }}"
 
+    - name: Clone the Blue-Rental-Car-App repository
+      git:
+        repo: 'https://github.com/BenguCambay/Blue-Rental-Car-App.git'
+        dest: '/home/ubuntu/Blue-Rental-Car-App'
+        version: master  # İstediğiniz branch'ı belirtin, bu örnekte 'master' olarak bırakılmıştır
+        force: yes
+
+    - name: Change directory to Kubernetes YAML folder
+      command: cd /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml
+
+
     - debug:
         var: kubectl_output.stdout
