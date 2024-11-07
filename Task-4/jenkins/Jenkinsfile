@@ -150,7 +150,7 @@ pipeline {
                     echo "SSH Key File Path: ${WORKSPACES}"
                     
                         sh '''
-                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${nodeIp} '
+                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${NODE_IP} '
                            sleep 10
                            git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
                            sleep 10
