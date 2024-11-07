@@ -151,8 +151,8 @@ pipeline {
                     sh """
                        ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${NODE_IP} '
                        sleep 10
-                       rm -rf /home/ubuntu/kubernetes-yml/kustomization-template.yml
-                       rm -rf /home/ubuntu/kubernetes-yml/ui-deployment-template.yml
+                       rm -rf /home/ubuntu/kubernetes-yml/kustomization-template.yaml
+                       rm -rf /home/ubuntu/kubernetes-yml/ui-deployment-template.yaml
                        export KUBECONFIG=${KUBECONFIG}
                        kubectl apply -k /home/ubuntu/kubernetes-yml/
                        '
