@@ -51,17 +51,7 @@ pipeline {
             }
         }
 
-        stage('Build App Docker Images') {
-            steps {
-                echo 'Building App Dev Images'
-                sh """
-                    docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/Task-4/bluerentalcars-frontend"
-                    docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/Task-4/bluerentalcars-backend"
-                    docker build --force-rm -t "${IMAGE_TAG_DB}" "${WORKSPACE}/Task-4/postgresql"
-                    docker image ls
-                """
-            }
-        }
+
 
         stage('Prepare Tags for Docker Images') {
             steps {
@@ -85,6 +75,19 @@ pipeline {
                 sh "echo ${DB_TAG}"
             }
         }
+
+        stage('Build App Docker Images') {
+            steps {
+                echo 'Building App Dev Images'
+                sh """
+                    docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/Task-4/bluerentalcars-frontend"
+                    docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/Task-4/bluerentalcars-backend"
+                    docker build --force-rm -t "${IMAGE_TAG_DB}" "${WORKSPACE}/Task-4/postgresql"
+                    docker image ls
+                """
+            }
+        }
+
 
         stage('Push Images to ECR Repo') {
             steps {
