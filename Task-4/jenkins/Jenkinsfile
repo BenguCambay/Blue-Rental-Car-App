@@ -21,6 +21,9 @@ pipeline {
     }
 
     environment {
+        FRONTEND_TAG = "frontend-v${BUILD_NUMBER}"
+        BACKEND_TAG = "backend-v${BUILD_NUMBER}"
+        DB_TAG = "postgre-v${BUILD_NUMBER}"
         AWS_REGION = "us-east-1"
         INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
         APP_NAME = "car-rental"
@@ -64,35 +67,25 @@ pipeline {
             }
         }
 
-
-
-        stage('Prepare Tags for Docker Images') {
+        stage('Build') {
             steps {
-                echo 'Preparing Tags for Docker Images'
-                sh 'pwd'
                 script {
-                    def frontendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "frontend")
-                    def backendTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "backend")
-                    def postgreTag = getNextVersion("${ECR_REGISTRY}/${APP_REPO_NAME}", "postgre")
-
-                    env.BACKEND_TAG = "${backendTag}"
-                    env.FRONTEND_TAG = "${frontendTag}"
-                    env.DB_TAG = "${postgreTag}"
-
-                    env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${frontendTag}"
-                    env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${backendTag}"
-                    env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:${postgreTag}"
+                    env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${FRONTEND_TAG}"
+                    env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:${BACKEND_TAG}"
+                    env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:${DB_TAG}"
+                    echo "Image Tag: ${env.IMAGE_TAG_FE}"
+                    echo "Image Tag: ${env.IMAGE_TAG_BE}"
+                    echo "Image Tag: ${env.IMAGE_TAG_DB}"
                 }
-                sh 'pwd'
-                sh "echo ${env.BACKEND_TAG}"
-                sh "echo ${env.FRONTEND_TAG}"
-                sh "echo ${env.DB_TAG}"
             }
         }
 
+
+
+
         stage('Build App Docker Images') {
             steps {
-                echo 'Building App Dev Images'
+                echo 'Building App Images'
                 sh """
                     docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/Task-4/bluerentalcars-frontend"
                     docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/Task-4/bluerentalcars-backend"
