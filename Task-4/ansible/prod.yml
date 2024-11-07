@@ -3,6 +3,11 @@
   hosts: _prod_server
   become: true
   remote_user: ubuntu
+  vars:
+    region: "us-east-1"
+    ecr_registry: "058264318400.dkr.ecr.us-east-1.amazonaws.com"
+    secret_name: "ecr-secret"
+    docker_email: "none"
   tasks:
 
     - name: Update and upgrade the system packages
