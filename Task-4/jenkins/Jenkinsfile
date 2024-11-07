@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        KUBECONFIG = "~/.kube/config"
+        KUBECONFIG = "/etc/rancher/k3s/k3s.yaml"
         FRONTEND_TAG = "frontend-v${BUILD_NUMBER}"
         BACKEND_TAG = "backend-v${BUILD_NUMBER}"
         DB_TAG = "postgre-v${BUILD_NUMBER}"
