@@ -1,16 +1,3 @@
-def getNextVersion(repoUrl, baseTag) {
-    def versions = sh(script: "aws ecr describe-images --repository-name ${repoUrl.split('/')[1]} --query \"imageDetails[*].imageTags[?starts_with(@, '${baseTag}-v')\"]\" --output text", returnStdout: true).trim()
-
-    if (versions) {
-        def versionNumbers = versions.split('\n').collect { it.split('-v')[1].toInteger() }
-        def nextVersion = versionNumbers.max() + 1
-        return "${baseTag}-v${nextVersion}"
-    } else {
-        return "${baseTag}-v1"
-    }
-}
-
-
 pipeline {
     agent any
 
@@ -21,7 +8,7 @@ pipeline {
     }
 
     environment {
-        KUBECONFIG = "/path/to/your/kubeconfig"
+        KUBECONFIG = "~/.kube/config"
         FRONTEND_TAG = "frontend-v${BUILD_NUMBER}"
         BACKEND_TAG = "backend-v${BUILD_NUMBER}"
         DB_TAG = "postgre-v${BUILD_NUMBER}"
@@ -155,19 +142,25 @@ pipeline {
             }
         }
 
-        stage('Apply Kubernetes Changes with Kustomize') {
+        stage('Apply Kubernetes Configurations') {
             steps {
-                echo 'Applying Kubernetes changes using Kustomize'
+                env.sshKeyFile=
                 script {
-                    sh """
-                        cd Task-4/kubernetes-yml
-                        export KUBECONFIG=${KUBECONFIG}  # Kubeconfig ortam değişkenini ayarla
-                        kubectl apply -k . -f app-service.yaml -f db-service.yaml -f ui-service.yaml
-                    """
+                    env.sshKeyFile = "${ENVIRONMENT}"
+                    echo "SSH Key File Path: ${WORKSPACES}"
+                    
+                        sh '''
+                           ssh -i ${sshKeyFile} -o StrictHostKeyChecking=no ubuntu@${nodeIp} 'your-command'
+                           git clone https://github.com/BenguCambay/Blue-Rental-Car-App.git
+                           sleep 10
+                           export KUBECONFIG=${KUBECONFIG}
+                           kubectl apply -f /home/ubuntu/Blue-Rental-Car-App/Task-4/kubernetes-yml/
+                        "
+                        '''
+                    
                 }
             }
         }
-    }
 
     post {
         always {
