@@ -1,0 +1,130 @@
+pipeline {
+    agent any
+
+    environment {
+        CHART_NAME= "brc-chart"
+        CHART_VERSION= "0.1.0"
+        AWS_REGION= "us-east-1"
+        INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
+        APP_NAME="car-rental"
+        APP_REPO_NAME="brc-eks-repo"
+        AWS_ACCOUNT_ID=sh(script: 'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
+        ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    }
+
+    stages {    
+
+        stage('Helm Deploy') {
+            steps {
+               
+                sh """
+
+                   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+                   helm repo update
+                   helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
+
+                """
+            }
+        }
+        
+        stage('Prepare Tags for Docker Images') {
+            steps {
+                echo 'Preparing Tags for Docker Images'
+                script {
+                    env.IMAGE_TAG_FE = "${ECR_REGISTRY}/${APP_REPO_NAME}:frontend"
+                    env.IMAGE_TAG_BE = "${ECR_REGISTRY}/${APP_REPO_NAME}:backend"
+                    env.IMAGE_TAG_DB = "${ECR_REGISTRY}/${APP_REPO_NAME}:postgre"
+                }
+            }
+        }
+              
+
+        stage('Build App Docker Images') {
+            steps {
+                echo 'Building App Dev Images'
+                sh """
+                    docker build --force-rm -t "${IMAGE_TAG_FE}" "${WORKSPACE}/bluerentalcars-frontend"
+                    docker build --force-rm -t "${IMAGE_TAG_BE}" "${WORKSPACE}/bluerentalcars-backend"
+                    docker build --force-rm -t "${IMAGE_TAG_DB}" "${WORKSPACE}/postgresql"
+                    docker image ls
+                """
+            }
+        }
+        stage('Create ECR Repository') {
+            steps {
+                echo "Creating ECR Repository ${APP_REPO_NAME}"
+                sh """
+                    aws ecr describe-repositories --repository-names "${APP_REPO_NAME}" --region ${AWS_REGION} || \
+                    aws ecr create-repository --repository-name "${APP_REPO_NAME}" --region ${AWS_REGION}
+                """
+            }
+        }
+        stage('Push Images to ECR Repo') {
+            steps {
+                echo "Pushing ${APP_NAME} App Images to ECR Repo"
+                sh """
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    docker push "${IMAGE_TAG_FE}"
+                    docker push "${IMAGE_TAG_BE}"
+                    docker push "${IMAGE_TAG_DB}"
+                """
+            }
+        }
+        
+       
+        stage('Helm Deploy') {
+            steps {
+               
+                sh """
+
+                helm package ${WORKSPACE}/&{CHART_NAME}
+                helm repo index . --url s3://brc-helm-bucket-bc
+                aws s3 cp index.yml s3://brc-helm-bucket-bc/
+                aws s3 cp &{CHART_NAME}.tgz s3://brc-helm-bucket-bc/
+                helm repo add brc-helm-repo s3://brc-helm-bucket-bc
+                helm repo update
+                helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME}-${CHART_VERSION}.tgz
+
+                """
+            }
+        }
+    }
+
+   post {
+    always {
+        echo 'Deleting all local Docker images'
+        sh 'docker image prune -af'
+        
+    }
+    success {
+        echo 'Delete the Key Pair'
+        timeout(time:5, unit:'DAYS') {
+            input message: 'Approve terminate'
+        }
+        
+        echo 'Delete the Image Repository on ECR due to the success'
+        sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
+        
+        echo 'Uninstalling Helm release'
+        sh "helm uninstall ${CHART_NAME}-release"
+
+        echo 'Cleaning up local Helm repository'
+        sh 'rm -rf ./${CHART_NAME}-${CHART_VERSION}.tgz'
+        sh 'helm repo remove my-local-repo'
+    }
+    failure {
+        echo 'Delete'
+        timeout(time:5, unit:'DAYS') {
+            input message: 'Approve terminate'
+        }
+        
+        echo 'Delete the Image Repository on ECR due to the failure'
+        sh "aws ecr delete-repository --repository-name ${APP_REPO_NAME} --region ${AWS_REGION} --force"
+        
+        echo 'Uninstalling Helm release'
+        sh "helm uninstall ${CHART_NAME}-release"
+    }
+}
+
+
+}
