@@ -76,7 +76,7 @@ pipeline {
             steps {
                
                 sh """
-
+                cd Task-5
                 helm package ${WORKSPACE}/&{CHART_NAME}
                 helm repo index . --url s3://brc-helm-bucket-bc
                 aws s3 cp index.yml s3://brc-helm-bucket-bc/
