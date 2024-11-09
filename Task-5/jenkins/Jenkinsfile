@@ -5,7 +5,6 @@ pipeline {
         CHART_NAME = "brc-chart"
         CHART_VERSION = "0.1.0"
         AWS_REGION = "us-east-1"
-        INSTANCE_COUNT_INT = "${params.INSTANCE_COUNT.toInteger()}"
         APP_NAME = "car-rental"
         APP_REPO_NAME = "brc-eks-repo"
         AWS_ACCOUNT_ID = sh(script: 'export PATH="$PATH:/usr/local/bin" && aws sts get-caller-identity --query Account --output text', returnStdout: true).trim()
