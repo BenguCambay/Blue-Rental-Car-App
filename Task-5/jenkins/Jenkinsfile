@@ -15,9 +15,10 @@ pipeline {
 
         stage('Prometheus') {
             steps {
-                
+
                 sh """
                 aws eks update-kubeconfig --region us-east-1 --name eks-brc
+                kubectl get nodes
                    """
 
                 sh """
