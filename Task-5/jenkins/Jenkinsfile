@@ -85,13 +85,8 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Deleting all local Docker images'
-            sh 'docker image prune -af'
-        }
-        
         success {
-            echo 'Delete the Key Pair'
+            echo 'Delete'
             timeout(time: 5, unit: 'DAYS') {
                 input message: 'Approve terminate'
             }
@@ -108,7 +103,7 @@ pipeline {
         }
         
         failure {
-            echo 'Delete the Key Pair'
+            echo 'Delete'
             timeout(time: 5, unit: 'DAYS') {
                 input message: 'Approve terminate'
             }
@@ -118,6 +113,10 @@ pipeline {
             
             echo 'Uninstalling Helm release'
             sh "helm uninstall ${CHART_NAME}-release"
+
+            echo 'Cleaning up local Helm repository'
+            sh "rm -rf ./${CHART_NAME}-${CHART_VERSION}.tgz"
+            sh "helm repo remove brc-helm-repo"
         }
     }
 }
