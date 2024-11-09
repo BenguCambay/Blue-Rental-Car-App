@@ -119,9 +119,9 @@
         stdin: "{{ ecr_password.stdout }}"
       changed_when: false
 
-    - name: Create Kubernetes Docker registry secret
+    - name: Create Kubernetes Docker registry sectre
       command: >
-        kubectl create secret docker-registry {{ secret_name }}
+        kubectl create secret docker-registry {{ secret_neam }}
         --docker-server={{ ecr_registry }}
         --docker-username=AWS
         --docker-password={{ ecr_password.stdout }}
