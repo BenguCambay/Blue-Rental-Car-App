@@ -95,6 +95,7 @@ pipeline {
                     helm repo add brc-helm-repo s3://brc-helm-bucket-bc/
                     helm repo update
                     helm repo list
+                    helm uninstall ${CHART_NAME}-release --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                     helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME} --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                 """
             }
