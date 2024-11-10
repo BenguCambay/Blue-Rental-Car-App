@@ -80,9 +80,6 @@ pipeline {
             steps {
                 sh """               
                     cd Task-5
-                    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-                    helm repo update
-                    helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-basic --create-namespace --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                     kubectl config set-context --current --namespace=ingress-basic --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                     kubectl get namespaces --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                     helm package ${WORKSPACE}/Task-5/${CHART_NAME}
@@ -95,7 +92,6 @@ pipeline {
                     helm repo add brc-helm-repo s3://brc-helm-bucket-bc/
                     helm repo update
                     helm repo list
-                    helm uninstall ${CHART_NAME}-release --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                     helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME} --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
                 """
             }
