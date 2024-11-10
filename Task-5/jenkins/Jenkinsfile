@@ -17,7 +17,7 @@ pipeline {
             steps {
 
                 sh """
-                sh 'export KUBECONFIG=/var/lib/jenkins/.kube/config && kubectl get nodes'
+                sh 'export KUBECONFIG=/var/lib/jenkins/workspace/BRC-Pipeline/config && kubectl get nodes'
                    """
 
                 sh """
