@@ -80,6 +80,8 @@ pipeline {
             steps {
                 sh """               
                     cd Task-5
+                    aws eks update-kubeconfig --region us-east-1 --name brc-cluster --kubeconfig /var/lib/jenkins/kubeconfig.yaml
+                    kubectl --kubeconfig=/var/lib/jenkins/kubeconfig.yaml get nodes
                     helm package ${WORKSPACE}/Task-5/${CHART_NAME}
                     ls
                     helm repo index . --url s3://brc-helm-bucket-bc
@@ -91,7 +93,7 @@ pipeline {
                     helm repo add brc-helm-repo s3://brc-helm-bucket-bc/
                     helm repo update
                     helm repo list
-                    helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME} --version ${CHART_VERSION}
+                    helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME}
                 """
             }
         }
