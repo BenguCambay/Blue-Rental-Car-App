@@ -80,12 +80,12 @@ pipeline {
             steps {
                 sh """               
                     cd Task-5
-                    aws eks update-kubeconfig --region us-east-1 --name brc-cluster --kubeconfig /var/lib/jenkins/kubeconfig.yaml
-                    kubectl --kubeconfig=/var/lib/jenkins/kubeconfig.yaml get nodes
+                    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+                    helm repo update
+                    helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-basic --create-namespace --kubeconfig=/var/lib/jenkins/kubeconfig.yaml
+                    kubectl get namespaces
                     helm package ${WORKSPACE}/Task-5/${CHART_NAME}
-                    ls
                     helm repo index . --url s3://brc-helm-bucket-bc
-                    ls
                     aws s3 cp index.yaml s3://brc-helm-bucket-bc/
                     aws s3 cp ${CHART_NAME}-${CHART_VERSION}.tgz s3://brc-helm-bucket-bc/
                     helm plugin remove s3
