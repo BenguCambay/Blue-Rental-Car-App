@@ -80,7 +80,7 @@ pipeline {
             steps {
                 sh """               
                     cd Task-5
-                    helm package ${WORKSPACE}/${CHART_NAME}
+                    helm package ${WORKSPACE}/Task-5/${CHART_NAME}
                     ls
                     helm repo index . --url s3://brc-helm-bucket-bc
                     ls
