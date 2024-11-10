@@ -21,7 +21,7 @@ pipeline {
                 mkdir -p ${WORKSPACE}/bin
                 mv ./kubectl ${WORKSPACE}/bin/kubectl
                 aws eks update-kubeconfig --region us-east-1 --name brc-cluster --kubeconfig /var/lib/jenkins/kubeconfig.yaml
-                kubectl --kubeconfig=${WORKSPACE} get nodes
+                kubectl --kubeconfig=/var/lib/jenkins/ get nodes
                 '''
             }
         }
