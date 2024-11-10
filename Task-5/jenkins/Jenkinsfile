@@ -86,7 +86,7 @@ pipeline {
                     ls
                     aws s3 cp index.yaml s3://brc-helm-bucket-bc/
                     aws s3 cp ${CHART_NAME}-${CHART_VERSION}.tgz s3://brc-helm-bucket-bc/
-                    helm repo add brc-helm-repo s3://brc-helm-bucket-bc
+                    helm repo add brc-helm-repo s3://brc-helm-bucket-bc/
                     helm repo update
                     helm repo list
                     helm install ${CHART_NAME}-release brc-helm-repo/${CHART_NAME} --version ${CHART_VERSION}
