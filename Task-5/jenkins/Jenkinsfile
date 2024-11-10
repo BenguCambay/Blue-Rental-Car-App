@@ -88,6 +88,7 @@ pipeline {
                     ls
                     aws s3 cp index.yaml s3://brc-helm-bucket-bc/
                     aws s3 cp ${CHART_NAME}-${CHART_VERSION}.tgz s3://brc-helm-bucket-bc/
+                    helm plugin remove s3
                     helm plugin install https://github.com/hypnoglow/helm-s3.git
                     helm plugin list
                     helm repo add brc-helm-repo s3://brc-helm-bucket-bc/
